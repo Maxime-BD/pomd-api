@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard</title>
+    <!-- Include Tailwind CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        /* Custom styles for dark theme */
+        .dark {
+            background-color: #1a202c;
+            color: #cbd5e0;
+        }
+        .grid-item {
+            grid-row: span 3;
+        }
+        /* Hide all sections initially */
+        section {
+            display: none;
+        }
+
+        /* Show active section */
+        section.active {
+            display: block;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100">
+
+<div class="flex h-screen">
+    <!-- Sidebar -->
+    <aside class="bg-gray-200 dark:bg-gray-900 w-1/8 py-8 px-4">
+        <ul>
+            <li><a href="#" onclick="showSection('magasin')" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700">Commande</a></li>
+            <li><a href="#" onclick="showSection('historique')" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700">Historique</a></li>
+            <li><a href="#" onclick="showSection('analytique')" class="block py-2 px-4 text-gray-700 dark:text-gray-300 hover:bg-gray-300 dark:hover:bg-gray-700">Dashboard</a></li>
+        </ul>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 p-4">
+        <!-- Magasin Section -->
+        <section id="magasin" class="active">
+            <h1 class="text-2xl font-bold mb-4">Commande</h1>
+
+            <!-- Category Buttons -->
+            <div id="category-buttons" class="mb-4">
+                <!-- Category buttons will be dynamically inserted here -->
+            </div>
+
+            <!-- Inventory Display Grid -->
+            <div id="inventory-grid" class="hidden grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 gap-6">
+                <!-- Inventory items will be dynamically inserted here -->
+            </div>
+
+            <!-- Back to Categories Button -->
+            <button id="back-to-categories" class="hidden bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 mt-2" onclick="showCategories()">Back to Categories</button>
+        </section>
+
+        <!-- Historique Section -->
+        <section id="historique">
+            <h1 class="text-2xl font-bold mb-4">Historique</h1>
+            <p>This is the Historique (History) section. Display historical data here.</p>
+        </section>
+
+        <!-- Analytique Section -->
+        <section id="analytique">
+            <h1 class="text-2xl font-bold mb-4">Analytique</h1>
+            <p>This is the Analytique (Analytics) section. Display analytics data here.</p>
+        </section>
+    </main>
+
+    <!-- Right Sidebar for Panier -->
+    <aside class="bg-gray-200 dark:bg-gray-900 w-1/4 py-8 px-4">
+        <h2 class="text-xl font-bold mb-2">Panier</h2>
+        <ul id="panier-list" class="list-disc pl-5">
+            <!-- Selected items will be dynamically inserted here -->
+        </ul>
+        <!-- Current Total Display -->
+        <div id="current-total" class="mt-4 text-lg font-bold">Total: $0.00</div>
+        <!-- New buttons for Livraison, Magasin, and Valider Panier -->
+        <div class="mt-4">
+            <button id="livraison-button" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mr-2">Livraison</button>
+            <button id="magasin-button" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mr-2">Magasin</button>
+            <button id="valider-panier-button" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2">Valider Panier</button>
+        </div>
+    </aside>
+</div>
+
+<!-- Confirmation Modal -->
+<div id="confirmation-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-1/3">
+        <h2 class="text-xl font-bold mb-4">Confirm Panier</h2>
+        <p>Are you sure you want to validate the panier?</p>
+        <div class="mt-4 flex justify-end">
+            <button id="cancel-button" class="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-4 py-2 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600 mr-2">Cancel</button>
+            <button id="confirm-button" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Confirm</button>
+        </div>
+    </div>
+</div>
+
+<!-- Theme Toggle Button -->
+<button id="theme-toggle" class="fixed bottom-4 right-4 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-4 py-2 rounded-lg shadow-md focus:outline-none">Toggle Theme</button>
+
+<!-- JavaScript for theme toggle and section switching -->
+<script>
+    // Theme toggle functionality
+    const toggleButton = document.getElementById('theme-toggle');
+    toggleButton.addEventListener('click', function() {
+        const body = document.body;
+        body.classList.toggle('dark');
+    });
+
+    // Section switching functionality
+    function showSection(sectionId) {
+        // Hide all sections
+        const sections = document.querySelectorAll('section');
+        sections.forEach(section => {
+            section.classList.remove('active');
+        });
+
+        // Show the selected section
+        const selectedSection = document.getElementById(sectionId);
+        selectedSection.classList.add('active');
+    }
+
+    // Show categories
+    function showCategories() {
+        document.getElementById('category-buttons').classList.remove('hidden');
+        document.getElementById('inventory-grid').classList.add('hidden');
+        document.getElementById('back-to-categories').classList.add('hidden');
+    }
+
+    // Show items of a specific category
+    function showCategoryItems(categoryName) {
+        document.getElementById('category-buttons').classList.add('hidden');
+        document.getElementById('inventory-grid').classList.remove('hidden');
+        document.getElementById('back-to-categories').classList.remove('hidden');
+
+        const items = document.querySelectorAll('.category-item');
+        items.forEach(item => {
+            if (item.dataset.category === categoryName) {
+                item.classList.remove('hidden');
+            } else {
+                item.classList.add('hidden');
+            }
+        });
+    }
+
+    // Function to update the current total
+    function updateTotal() {
+        const panierList = document.getElementById('panier-list');
+        let total = 0;
+        panierList.querySelectorAll('li').forEach(item => {
+            const itemText = item.textContent;
+            const match = itemText.match(/\$(\d+(\.\d+)?) x (\d+)/);
+            if (match) {
+                const price = parseFloat(match[1]);
+                const quantity = parseInt(match[3]);
+                total += price * quantity;
+            }
+        });
+        document.getElementById('current-total').textContent = `Total: $${total.toFixed(2)}`;
+    }
+
+    // Function to add an item to the panier
+    function addToPanier(itemName, itemPrice, quantity) {
+        const panierList = document.getElementById('panier-list');
+        const listItem = document.createElement('li');
+        listItem.textContent = `${itemName} - $${itemPrice} x ${quantity}`;
+        const deleteButton = document.createElement('button');
+        deleteButton.textContent = 'Delete';
+        deleteButton.className = 'ml-2 text-red-500';
+        deleteButton.onclick = () => {
+            listItem.remove();
+            updateTotal();
+        };
+        listItem.appendChild(deleteButton);
+        panierList.appendChild(listItem);
+        updateTotal();
+    }
+
+    // Function to update the quantity input value
+    function updateQuantity(inputId, step) {
+        const input = document.getElementById(inputId);
+        let value = parseInt(input.value) || 1;
+        value += step;
+        if (value < 1) value = 1; // Ensure value doesn't go below 1
+        input.value = value;
+    }
+
+    // Category class for rendering items
+    class Category {
+        constructor(name) {
+            this.name = name;
+            this.items = [];
+        }
+
+        addItem(item) {
+            this.items.push(item);
+        }
+
+        render() {
+            const categoryDiv = document.createElement('div');
+            categoryDiv.className = 'category-item w-full h-full';
+            categoryDiv.dataset.category = this.name;
+
+            this.items.forEach(item => {
+                const itemDiv = document.createElement('div');
+                itemDiv.className = 'bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4 grid-item';
+
+                // Dynamically generated item display
+                itemDiv.innerHTML = `
+                    <h2 class="text-lg font-bold">${item.Item_name}</h2>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Price: $${item.unit_price}</p>
+                    <p class="text-sm text-gray-600 dark:text-gray-300">Stock: ${item.Quantity_Available}</p>
+
+                    <!-- Quantity input with plus and minus buttons -->
+                    <div class="flex items-center space-x-2">
+                        <button class="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600"
+                                onclick="updateQuantity('quantity-${item.Item_Id}', -1)">-</button>
+                        <input type="number" id="quantity-${item.Item_Id}" name="quantity" min="1" max="${item.Quantity_Available}" value="1"
+                               class="w-16 text-center border rounded-md bg-white dark:bg-gray-800 dark:text-gray-300 focus:ring-indigo-500 focus:border-indigo-500">
+                        <button class="bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-3 py-1 rounded-md hover:bg-gray-400 dark:hover:bg-gray-600"
+                                onclick="updateQuantity('quantity-${item.Item_Id}', 1)">+</button>
+                    </div>
+
+                    <button class="bg-green-500 text-white px-3 py-1 rounded-md hover:bg-green-600 mt-2"
+                            onclick="addToPanier('${item.Item_name}', ${item.unit_price}, document.getElementById('quantity-${item.Item_Id}').value)">
+                        Add to Panier
+                    </button>
+                `;
+                categoryDiv.appendChild(itemDiv);
+            });
+
+            return categoryDiv;
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        fetch('http://194.87.217.68:5003/categories/items/inventory/list')
+            .then(response => response.json())
+            .then(data => {
+                const inventoryGrid = document.getElementById('inventory-grid');
+                const categoryButtons = document.getElementById('category-buttons');
+                const categories = {};
+
+                data.forEach(item => {
+                    if (!categories[item.Category]) {
+                        categories[item.Category] = new Category(item.Category);
+                    }
+                    categories[item.Category].addItem(item);
+                });
+
+                Object.values(categories).forEach(category => {
+                    const button = document.createElement('button');
+                    button.className = 'bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 mr-2 mb-2';
+                    button.textContent = category.name;
+                    button.onclick = () => showCategoryItems(category.name);
+                    categoryButtons.appendChild(button);
+
+                    inventoryGrid.appendChild(category.render());
+                });
+            });
+
+        // Event listeners for new buttons
+        document.getElementById('livraison-button').addEventListener('click', function() {
+            alert('Livraison selected');
+        });
+
+        document.getElementById('magasin-button').addEventListener('click', function() {
+            alert('Magasin selected');
+        });
+
+        document.getElementById('valider-panier-button').addEventListener('click', function() {
+            document.getElementById('confirmation-modal').classList.remove('hidden');
+        });
+
+        // Event listener for the "Cancel" button in the modal
+        document.getElementById('cancel-button').addEventListener('click', function() {
+            document.getElementById('confirmation-modal').classList.add('hidden');
+        });
+
+        // Event listener for the "Confirm" button in the modal
+        document.getElementById('confirm-button').addEventListener('click', function() {
+            document.getElementById('confirmation-modal').classList.add('hidden');
+            alert('Panier validated');
+            // Add your panier validation logic here
+        });
+    });
+</script>
+</body>
+</html>
