@@ -76,29 +76,424 @@
             <button id="back-to-categories" class="hidden bg-blue-500 text-white px-6 py-3 rounded-md hover:bg-blue-600 mt-2" onclick="showCategories()">Back to Categories</button>
         </section>
 
-        <!-- Historique Section -->
-        <section id="historique">
-            <h1 class="text-2xl font-bold mb-4">Historique</h1>
-            <p>This is the Historique (History) section. Display historical data here.</p>
-        </section>
+<section id="historique">
 
-<section id="dashboard">
-    <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
-            <h2 class="text-lg font-bold mb-2">Sales Chart</h2>
-            <canvas id="salesChart" class="w-full h-64"></canvas>
+        <!-- Filter section -->
+        <label for="filter-category">Filter by Category:</label>
+        <select id="filter-category">
+            <option value="all">All</option>
+            <option value="Pommes">Pommes</option>
+            <option value="Poires">Poires</option>
+            <option value="Jus">Jus</option>
+            <option value="Autres produits">Autres produits</option>
+        </select>
+
+        <!-- Button to fetch today’s sales -->
+        <button id="fetch-today-sales">Today's Sales</button>
+
+        <!-- Button to export to Excel -->
+        <button id="export-excel">Export to Excel</button>
+
+        <!-- Tables for sales -->
+        <h2>Today's Sales</h2>
+        <table id="today-sales">
+            <thead>
+                <tr>
+                    <th data-column="Date" data-order="asc">Date <span class="arrow"></span></th>
+                    <th data-column="Item_name" data-order="asc">Item Name <span class="arrow"></span></th>
+                    <th data-column="Quantity_Sold" data-order="asc">Quantity Sold <span class="arrow"></span></th>
+                    <th data-column="Sale_Amount" data-order="asc">Sale Amount <span class="arrow"></span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be dynamically inserted here -->
+            </tbody>
+        </table>
+
+        <h2>All Sales</h2>
+        <table id="all-sales">
+            <thead>
+                <tr>
+                    <th data-column="Date" data-order="asc">Date <span class="arrow"></span></th>
+                    <th data-column="Item_name" data-order="asc">Item Name <span class="arrow"></span></th>
+                    <th data-column="Quantity_Sold" data-order="asc">Quantity Sold <span class="arrow"></span></th>
+                    <th data-column="Sale_Amount" data-order="asc">Sale Amount <span class="arrow"></span></th>
+                </tr>
+            </thead>
+            <tbody>
+                <!-- Data will be dynamically inserted here -->
+            </tbody>
+        </table>
+    </section>
+
+    <script>
+        const apiUrl = 'http://194.87.217.68:5004/history'; // URL of Flask API
+
+        document.getElementById('fetch-today-sales').addEventListener('click', async () => {
+    const selectedDate = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+    const salesData = await fetchSalesData(selectedDate);
+    populateTable(salesData, 'today-sales');
+});
+
+async function fetchSalesData(date) {
+    const url = `http://194.87.217.68:5004/history?date=${date}`;
+    const response = await fetch(url);
+    const data = await response.json();
+    return data;
+}
+
+function populateTable(data, tableId) {
+    const tableBody = document.getElementById(tableId).querySelector('tbody');
+    tableBody.innerHTML = ''; // Clear previous data
+    data.forEach(sale => {
+        const row = `<tr>
+            <td>${sale.Date}</td>
+            <td>${sale.Item_name}</td>
+            <td>${sale.Quantity_Sold}</td>
+            <td>${sale.Sale_Amount}</td>
+        </tr>`;
+        tableBody.innerHTML += row;
+    });
+}
+        // Sort table data
+        function sortTable(tableId, column, order) {
+            const table = document.getElementById(tableId);
+            const tbody = table.querySelector('tbody');
+            const rows = Array.from(tbody.querySelectorAll('tr'));
+
+            rows.sort((a, b) => {
+                const aText = a.querySelector(`td:nth-child(${column + 1})`).innerText;
+                const bText = b.querySelector(`td:nth-child(${column + 1})`).innerText;
+
+                if (!isNaN(aText) && !isNaN(bText)) {
+                    return order === 'asc' ? aText - bText : bText - aText;
+                }
+
+                return order === 'asc' ? aText.localeCompare(bText) : bText.localeCompare(aText);
+            });
+
+            // Rebuild the table with sorted rows
+            tbody.innerHTML = '';
+            rows.forEach(row => tbody.appendChild(row));
+        }
+
+        // Add sorting functionality to table headers
+        function addSorting(tableId) {
+            const headers = document.querySelectorAll(`#${tableId} th`);
+            headers.forEach((header, index) => {
+                header.addEventListener('click', () => {
+                    const order = header.getAttribute('data-order');
+                    sortTable(tableId, index, order);
+
+                    // Toggle the order
+                    const newOrder = order === 'asc' ? 'desc' : 'asc';
+                    header.setAttribute('data-order', newOrder);
+
+                    // Update the arrow
+                    updateArrow(header, newOrder);
+                });
+            });
+        }
+
+        // Update the arrow direction on sorting
+        function updateArrow(header, order) {
+            const arrow = header.querySelector('.arrow');
+            arrow.classList.remove('asc', 'desc');
+            arrow.classList.add(order);
+        }
+
+        // Fetch today's sales on button click
+        document.getElementById('fetch-today-sales').addEventListener('click', async () => {
+            const todaySalesData = await fetchSalesData(true);
+            populateTable(todaySalesData, 'today-sales');
+        });
+
+        // Fetch all sales and populate the 'all-sales' table on page load
+        window.onload = async () => {
+            const allSalesData = await fetchSalesData();
+            populateTable(allSalesData, 'all-sales');
+
+            // Add sorting functionality after the table is populated
+            addSorting('all-sales');
+            addSorting('today-sales');
+        };
+
+        // Export table data to Excel
+        document.getElementById('export-excel').addEventListener('click', function () {
+            const table = document.getElementById('all-sales');
+            const tableHtml = table.outerHTML.replace(/ /g, '%20');
+            const a = document.createElement('a');
+            a.href = 'data:application/vnd.ms-excel,' + tableHtml;
+            a.download = 'sales_data.xls';
+            a.click();
+        });
+    </script>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: left;
+        }
+        th {
+            background-color: #f2f2f2;
+            cursor: pointer;
+        }
+        .arrow {
+            display: inline-block;
+            margin-left: 5px;
+        }
+        .arrow.asc::after {
+            content: '▲'; /* Up arrow */
+        }
+        .arrow.desc::after {
+            content: '▼'; /* Down arrow */
+        }
+    </style>
+
+   <section id="dashboard">
+        <h1 class="text-2xl font-bold mb-4">Dashboard</h1>
+
+
+
+        <div class="grid grid-cols-1 md:grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-2">Sales Chart</h2>
+                <canvas id="salesChart" class="w-full h-64"></canvas>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-2">Category Chart</h2>
+                <canvas id="categoryChart" class="w-full h-64"></canvas>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-2">Best-Selling Products</h2>
+                <canvas id="bestSellingChart" class="w-full h-64"></canvas>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-2">Daily Sales Trend</h2>
+                <canvas id="dailySalesChart" class="w-full h-64"></canvas>
+            </div>
+            <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
+                <h2 class="text-lg font-bold mb-2">Top Selling Products</h2>
+                <canvas id="topProductsChart" class="w-full h-64"></canvas>
+            </div>
         </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
-            <h2 class="text-lg font-bold mb-2">Category Chart</h2>
-            <canvas id="categoryChart" class="w-full h-64"></canvas>
-        </div>
-        <div class="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 flex flex-col items-center">
-            <h2 class="text-lg font-bold mb-2">Time Chart</h2>
-            <canvas id="timeChart" class="w-full h-64"></canvas>
-        </div>
-    </div>
-</section>
+    </section>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function() {
+            const salesCtx = document.getElementById('salesChart').getContext('2d');
+            const categoryCtx = document.getElementById('categoryChart').getContext('2d');
+            const dailySalesCtx = document.getElementById('dailySalesChart').getContext('2d');
+            const topProductsCtx = document.getElementById('topProductsChart').getContext('2d');
+            const bestSellingCtx = document.getElementById('bestSellingChart').getContext('2d');
+
+            // Fetch sales data from the API
+            const fetchSalesData = async () => {
+                const response = await fetch('http://194.87.217.68:5004/history');
+                const data = await response.json();
+                return data;
+            };
+
+            // Process sales data for charts
+            const processSalesData = (salesData) => {
+                const salesChartData = {};
+                const categoryData = {};
+                const dailySalesData = {};
+                const topProductsData = {};
+
+                salesData.forEach(sale => {
+                    const date = new Date(sale.Date);
+                    const day = date.toISOString().split('T')[0]; // Format YYYY-MM-DD
+
+                    // Sales chart data
+                    const month = date.toLocaleString('default', { month: 'long' });
+                    if (!salesChartData[month]) {
+                        salesChartData[month] = 0;
+                    }
+                    salesChartData[month] += sale.Sale_Amount;
+
+                    // Daily sales trend
+                    if (!dailySalesData[day]) {
+                        dailySalesData[day] = 0;
+                    }
+                    dailySalesData[day] += sale.Sale_Amount;
+
+                    // Category data
+                    if (!categoryData[sale.Item_name]) {
+                        categoryData[sale.Item_name] = 0;
+                    }
+                    categoryData[sale.Item_name] += sale.Quantity_Sold;
+
+                    // Top selling products
+                    if (!topProductsData[sale.Item_name]) {
+                        topProductsData[sale.Item_name] = 0;
+                    }
+                    topProductsData[sale.Item_name] += sale.Quantity_Sold;
+
+                });
+
+                return { salesChartData, categoryData, dailySalesData, topProductsData };
+            };
+
+            // Initialize the charts with data
+            const initializeCharts = async (salesData) => {
+                const { salesChartData, categoryData, dailySalesData, topProductsData} = processSalesData(salesData);
+
+                // Prepare sales chart data
+                const salesLabels = Object.keys(salesChartData);
+                const salesValues = Object.values(salesChartData);
+
+                // Prepare category chart data
+                const categoryLabels = Object.keys(categoryData);
+                const categoryValues = Object.values(categoryData);
+
+                // Prepare daily sales trend data
+                const dailySalesLabels = Object.keys(dailySalesData);
+                const dailySalesValues = Object.values(dailySalesData);
+
+                // Prepare top products data
+                const topProductsLabels = Object.keys(topProductsData).sort((a, b) => topProductsData[b] - topProductsData[a]).slice(0, 5);
+                const topProductsValues = topProductsLabels.map(label => topProductsData[label]);
+
+                // Prepare best selling products data (for pie chart)
+                const bestSellingData = {};
+                topProductsLabels.forEach(label => {
+                    bestSellingData[label] = topProductsData[label];
+                });
+
+                const bestSellingLabels = Object.keys(bestSellingData);
+                const bestSellingValues = Object.values(bestSellingData);
+
+                // Sales Chart
+                new Chart(salesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: salesLabels,
+                        datasets: [{
+                            label: 'Sales',
+                            data: salesValues,
+                            borderColor: 'rgba(75, 192, 192, 1)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                        }]
+                    }
+                });
+
+                // Category Chart
+                new Chart(categoryCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: categoryLabels,
+                        datasets: [{
+                            label: 'Categories',
+                            data: categoryValues,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.2)',
+                                'rgba(54, 162, 235, 0.2)',
+                                'rgba(255, 206, 86, 0.2)',
+                                'rgba(75, 192, 192, 0.2)',
+                                'rgba(153, 102, 255, 0.2)',
+                                'rgba(255, 159, 64, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)',
+                                'rgba(255, 159, 64, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    }
+                });
+
+                // Best-Selling Products Pie Chart
+                new Chart(bestSellingCtx, {
+                    type: 'pie',
+                    data: {
+                        labels: bestSellingLabels,
+                        datasets: [{
+                            label: 'Best Selling Products',
+                            data: bestSellingValues,
+                            backgroundColor: [
+                                'rgba(255, 99, 132, 0.2)',
+                                'rgba(54, 162, 235, 0.2)',
+                                'rgba(255, 206, 86, 0.2)',
+                                'rgba(75, 192, 192, 0.2)',
+                                'rgba(153, 102, 255, 0.2)'
+                            ],
+                            borderColor: [
+                                'rgba(255, 99, 132, 1)',
+                                'rgba(54, 162, 235, 1)',
+                                'rgba(255, 206, 86, 1)',
+                                'rgba(75, 192, 192, 1)',
+                                'rgba(153, 102, 255, 1)'
+                            ],
+                            borderWidth: 1
+                        }]
+                    }
+                });
+
+                // Daily Sales Trend Chart
+                new Chart(dailySalesCtx, {
+                    type: 'line',
+                    data: {
+                        labels: dailySalesLabels,
+                        datasets: [{
+                            label: 'Daily Sales',
+                            data: dailySalesValues,
+                            borderColor: 'rgba(255, 159, 64, 1)',
+                            backgroundColor: 'rgba(255, 159, 64, 0.2)',
+                        }]
+                    }
+                });
+
+                // Top Selling Products Chart
+                new Chart(topProductsCtx, {
+                    type: 'bar',
+                    data: {
+                        labels: topProductsLabels,
+                        datasets: [{
+                            label: 'Top Selling Products',
+                            data: topProductsValues,
+                            backgroundColor: 'rgba(54, 162, 235, 0.2)',
+                            borderColor: 'rgba(54, 162, 235, 1)',
+                            borderWidth: 1
+                        }]
+                    }
+                });
+
+            };
+
+            // Filter function
+            const filterData = async () => {
+                const startDate = document.getElementById('startDate').value;
+                const endDate = document.getElementById('endDate').value;
+
+                const salesData = await fetchSalesData();
+                const filteredData = salesData.filter(sale => {
+                    const saleDate = new Date(sale.Date);
+                    return (!startDate || saleDate >= new Date(startDate)) &&
+                           (!endDate || saleDate <= new Date(endDate));
+                });
+
+                initializeCharts(filteredData);
+            };
+
+            // Attach event listener to filter button
+
+            // Initial chart setup
+            const salesData = await fetchSalesData();
+            initializeCharts(salesData);
+        });
+    </script>
 
 
     <!-- Stock Section -->
@@ -135,22 +530,34 @@
 </section>
             </main>
     <!-- Right Sidebar for Panier -->
-    <aside id="panier" class="bg-gray-200 dark:bg-gray-900 w-1/4 py-8 px-4">
+<aside id="panier" class="bg-gray-200 dark:bg-gray-900 w-1/4 h-full py-8 px-4 flex flex-col justify-between">
+    <div>
         <h2 class="text-xl font-bold mb-2">Panier</h2>
         <ul id="panier-list" class="list-disc pl-5">
             <!-- Selected items will be dynamically inserted here -->
         </ul>
         <!-- Current Total Display -->
         <div id="current-total" class="mt-4 text-lg font-bold">Total: $0.00</div>
-        <!-- New buttons for Livraison, Magasin, and Valider Panier -->
-        <div class="mt-4">
-            <button id="livraison-button" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mr-2">Livraison</button>
-            <button id="magasin-button" class="bg-blue-500 text-white px-4 py-2 rounded-md hover:bg-blue-600 mr-2">Magasin</button>
-            <button id="valider-panier-button" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600 mt-2">Valider Panier</button>
+    </div>
+    <!-- New buttons for Livraison, Magasin, and Valider Panier -->
+    <div class="mt-4 flex items-center justify-between">
+        <div class="flex items-center">
+            <label for="toggle-switch" class="mr-2">Livraison</label>
+            <input type="checkbox" id="toggle-switch" class="hidden" />
+            <label for="toggle-switch" class="bg-gray-300 dark:bg-gray-700 relative inline-block w-12 h-6 rounded-full cursor-pointer">
+                <span class="absolute left-1 top-1 bg-white dark:bg-gray-800 w-4 h-4 rounded-full transition-transform transform"></span>
+            </label>
+            <label for="toggle-switch" class="ml-2">Magasin</label>
         </div>
-    </aside>
+        <button id="valider-panier-button" class="bg-green-500 text-white px-4 py-2 rounded-md hover:bg-green-600">Valider Panier</button>
+    </div>
+</aside>
 </div>
-
+<style>
+    #toggle-switch:checked + label span {
+        transform: translateX(1.5rem);
+    }
+</style>
 <!-- Confirmation Modal -->
 <div id="confirmation-modal" class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 hidden">
     <div class="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 w-1/3">
@@ -164,89 +571,16 @@
 </div>
 
 <!-- Theme Toggle Button -->
-<button id="theme-toggle" class="fixed bottom-4 right-4 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-4 py-2 rounded-lg shadow-md focus:outline-none">Toggle Theme</button>
+<button id="theme-toggle" class="hidden fixed bottom-4 right-4 bg-gray-300 dark:bg-gray-700 text-gray-800 dark:text-gray-300 px-4 py-2 rounded-lg shadow-md focus:outline-none">Toggle Theme</button>
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const salesCtx = document.getElementById('salesChart').getContext('2d');
-    const categoryCtx = document.getElementById('categoryChart').getContext('2d');
-    const timeCtx = document.getElementById('timeChart').getContext('2d');
 
-    // Fake data for sales chart
-    const salesData = {
-        labels: ['January', 'February', 'March', 'April', 'May', 'June', 'July'],
-        datasets: [{
-            label: 'Sales',
-            data: [65, 59, 80, 81, 56, 55, 40],
-            borderColor: 'rgba(75, 192, 192, 1)',
-            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        }]
-    };
-
-    // Fake data for category chart
-    const categoryData = {
-        labels: ['Pomme', 'Poires', 'Jus', 'Sports', 'Electronics', 'Home Appliances'],
-        datasets: [{
-            label: 'Categories',
-            data: [12, 19, 3, 5, 2, 3],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-                'rgba(75, 192, 192, 0.2)',
-                'rgba(153, 102, 255, 0.2)',
-                'rgba(255, 159, 64, 0.2)'
-            ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)',
-                'rgba(153, 102, 255, 1)',
-                'rgba(255, 159, 64, 1)'
-            ],
-            borderWidth: 1
-        }]
-    };
-
-    // Fake data for time chart
-    const timeData = {
-        labels: ['Morning', 'Afternoon', 'Evening', 'Night'],
-        datasets: [{
-            label: 'Time of Day',
-            data: [10, 20, 30, 40],
-            backgroundColor: [
-                'rgba(255, 99, 132, 0.2)',
-                'rgba(54, 162, 235, 0.2)',
-                'rgba(255, 206, 86, 0.2)',
-                'rgba(75, 192, 192, 0.2)'
-            ],
-            borderColor: [
-                'rgba(255, 99, 132, 1)',
-                'rgba(54, 162, 235, 1)',
-                'rgba(255, 206, 86, 1)',
-                'rgba(75, 192, 192, 1)'
-            ],
-            borderWidth: 1
-        }]
-    };
-
-    // Initialize the charts
-    new Chart(salesCtx, {
-        type: 'line',
-        data: salesData
+    document.getElementById('valider-panier-button').addEventListener('click', function() {
+        document.getElementById('confirmation-modal').classList.remove('hidden');
     });
-
-    new Chart(categoryCtx, {
-        type: 'bar',
-        data: categoryData
+        document.getElementById('cancel-button').addEventListener('click', function() {
+        document.getElementById('confirmation-modal').classList.add('hidden');
     });
-
-    new Chart(timeCtx, {
-        type: 'pie',
-        data: timeData
-    });
-});
     // Theme toggle functionality
     const toggleButton = document.getElementById('theme-toggle');
     toggleButton.addEventListener('click', function() {
@@ -254,6 +588,79 @@ document.addEventListener('DOMContentLoaded', function() {
         body.classList.toggle('dark');
     });
 
+        document.getElementById('confirm-button').addEventListener('click', async function() {
+    document.getElementById('confirmation-modal').classList.add('hidden');
+    const panierList = document.getElementById('panier-list');
+    const items = panierList.querySelectorAll('li');
+
+    const sales = [];
+    for (const item of items) {
+        const itemId = parseInt(item.dataset.itemId);
+        const quantity = parseInt(item.dataset.quantity);
+        const itemName = item.textContent.split(' - ')[0];
+        const saleAmount = Math.ceil(parseFloat(item.textContent.match(/\$(\d+(\.\d+)?)/)[1]) * quantity);
+
+
+
+
+        sales.push({
+            Item_Id: itemId,
+            Item_name: itemName,
+            Quantity_Sold: quantity,
+            Sale_Amount: saleAmount,
+            Date: new Date().toISOString().split('T')[0] // Current date in YYYY-MM-DD format
+        });
+
+        try {
+            await removeItemFromStock(itemId, quantity);
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to remove item from stock');
+            return;
+        }
+    }
+
+    // Send sales data to the API
+    try {
+        const response = await fetch('http://194.87.217.68:5004/history', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(sales)
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to add sales to history');
+        }
+
+        alert('Panier confirmed and sales history updated successfully');
+        location.reload();
+    } catch (error) {
+        console.error('Error:', error);
+        alert('Failed to update sales history');
+    }
+});
+
+    // Function to remove an item from stock
+    async function removeItemFromStock(itemId, quantity) {
+        const response = await fetch('http://194.87.217.68:5003/categories/items/inventory/remove_object', {
+            method: 'PUT',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                Item_Id: itemId,
+                Quantity: quantity
+            })
+        });
+
+        if (!response.ok) {
+            throw new Error('Failed to remove item from stock');
+        }
+
+        return response.json();
+    }
     // Section switching functionality
     function showSection(sectionId) {
         // Hide all sections
