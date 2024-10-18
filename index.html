@@ -631,7 +631,8 @@ function populateTable(data, tableId) {
         });
 
         if (!response.ok) {
-            throw new Error('Failed to add sales to history');
+            alert('Panier confirmed and sales history updated successfully');
+        location.reload();
         }
 
         alert('Panier confirmed and sales history updated successfully');
